@@ -36,18 +36,8 @@
     },
     {
       "name": "mediaPlayerApp",
-      "title": "Media Player",
-      "type": "dropdown",
-      "data": [
-        {
-          "title": "IINA",
-          "value": "iina"
-        },
-        {
-          "title": "VLC Media Player",
-          "value": "vlc"
-        }
-      ],
+      "title": "Media Player ('iina' or 'vlc' could be better choise)",
+      "type": "appPicker",
       "description": "Select media player app to use",
       "required": true
     }

@@ -114,11 +114,8 @@ export default function Command() {
 
   const getStreamLink = (item: TorrentItem) => {
     const encodedTitle = encodeURIComponent(item.title);
-    const hash = item.hash;
 
-    return `${mediaPlayerApp}://weblink?url=${encodeURIComponent(
-      `${torrserverUrl}/stream/[${encodedTitle}] ${encodedTitle}.m3u?link=${hash}&m3u&fn=file.m3u`,
-    )}`;
+    return `${torrserverUrl}/stream/[${encodedTitle}] ${encodedTitle}.m3u?link=${item.hash}&m3u&fn=file.m3u`;
   };
 
   const sortedItems = [
@@ -139,7 +136,12 @@ export default function Command() {
             title={item.title}
             actions={
               <ActionPanel>
-                <Action.Open title={`Open in ${mediaPlayerApp}`} target={getStreamLink(item)} />
+                <Action.Open
+                  title={`Open in ${mediaPlayerApp}`}
+                  target={getStreamLink(item)}
+                  application={mediaPlayerApp.path}
+                />
+
                 <Action
                   title={favorites.includes(item.hash) ? "Remove from Favorites" : "Add to Favorites"}
                   icon={favorites.includes(item.hash) ? Icon.Trash : Icon.Star}
