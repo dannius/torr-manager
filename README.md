@@ -19,7 +19,7 @@ The **torr-manager** extension allows users to connect to their TorrServer, brow
 
 - **macOS**: This extension is designed to run on macOS.
 - **Raycast**: Raycast must be installed on your system. You can download it from the [Raycast official website](https://www.raycast.com).
-- **TorrServer**: You need to host your own instance of TorrServer or use a public one. The original TorrServer can be found at the [https://github.com/YouROK/TorrServe](https://github.com/YouROK/TorrServe).
+- **TorrServer**: You need to host your own instance of TorrServer or use a public one. The original TorrServer can be found here [https://github.com/YouROK/TorrServe](https://github.com/YouROK/TorrServe).
 
 ## Installation (Development Version)
 

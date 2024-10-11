@@ -2,21 +2,21 @@ import { Form, ActionPanel, Action, showToast, Toast, getPreferenceValues } from
 import fetch from "node-fetch";
 import { FormData } from "formdata-node";
 import { fileFromPath } from "formdata-node/file-from-path";
-import { getAuthHeaders } from "./auth-headers";
+import { getAuthHeaders } from "./utils";
 import { Preferences } from "./models";
 import { useState } from "react";
 
-type Values = {
+interface SubmitFormValues {
   torrentFile: string[];
   posterUrl: string;
   title: string;
-};
+}
 
 export default function Command() {
   const { torrserverUrl } = getPreferenceValues<Preferences>();
   const [title, setTitle] = useState<string>("");
 
-  async function handleSubmit(values: Values) {
+  async function handleSubmit(values: SubmitFormValues) {
     const { torrentFile, posterUrl } = values;
 
     if (!torrentFile || torrentFile.length === 0) {
@@ -58,8 +58,7 @@ export default function Command() {
         throw new Error(`Failed to upload torrent: ${response.status} ${response.statusText}\n${errorData}`);
       }
 
-      const data = await response.json();
-      showToast(Toast.Style.Success, "Torrent added successfully", `Response: ${JSON.stringify(data)}`);
+      showToast(Toast.Style.Success, "Torrent added successfully");
     } catch (error) {
       showToast(Toast.Style.Failure, "Error", "Something went wrong");
     }

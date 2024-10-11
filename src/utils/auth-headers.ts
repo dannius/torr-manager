@@ -1,6 +1,5 @@
-// authHeaders.ts
 import { getPreferenceValues } from "@raycast/api";
-import { Preferences } from "./models";
+import { Preferences } from "./../models";
 
 export function getAuthHeaders() {
   const { login, password } = getPreferenceValues<Preferences>();

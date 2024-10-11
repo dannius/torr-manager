@@ -1,21 +1,14 @@
 import { ActionPanel, Action, Icon, List, showToast, Toast, getPreferenceValues, confirmAlert } from "@raycast/api";
 import { useEffect, useState } from "react";
-import { useFetch, useLocalStorage } from "@raycast/utils";
+import { useLocalStorage } from "@raycast/utils";
 import fetch from "node-fetch";
-import { getAuthHeaders } from "./auth-headers";
-import { Preferences } from "./models";
+import { getAuthHeaders } from "./utils";
+import { Preferences, TorrentItem } from "./models";
 
 export default function Command() {
   const { torrserverUrl, mediaPlayerApp } = getPreferenceValues<Preferences>();
 
-  const { isLoading, error } = useFetch(`${torrserverUrl}/playlistall/all.m3u`, {
-    headers: {
-      ...getAuthHeaders(),
-    },
-    keepPreviousData: true,
-  });
-
-  const [items, setItems] = useState<{ title: string; url: string }[]>([]);
+  const [items, setItems] = useState<TorrentItem[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const {
@@ -24,22 +17,30 @@ export default function Command() {
     isLoading: isLoadingFavorites,
   } = useLocalStorage<string[]>("favorites", []);
 
+  useEffect(() => {
+    getList();
+  }, [torrserverUrl]);
+
   const getList = async () => {
     setIsRefreshing(true);
     try {
-      const response = await fetch(`${torrserverUrl}/playlistall/all.m3u`, {
+      const response = await fetch(`${torrserverUrl}/torrents`, {
+        method: "POST",
         headers: {
+          "Content-Type": "application/json",
           ...getAuthHeaders(),
         },
+        body: JSON.stringify({
+          action: "list",
+        }),
       });
 
       if (!response.ok) {
         throw new Error("Failed to fetch updated playlist");
       }
 
-      const data = await response.text();
-      const parsedItems = parseM3U(data);
-      setItems(parsedItems);
+      const torrents = (await response.json()) as TorrentItem[];
+      setItems(torrents);
     } catch (error) {
       showToast(Toast.Style.Failure, "Error", "Failed to update the torrent list");
     } finally {
@@ -47,34 +48,7 @@ export default function Command() {
     }
   };
 
-  useEffect(() => {
-    if (error) {
-      showToast(Toast.Style.Failure, "Failed to fetch playlist", error.message);
-    } else {
-      getList();
-    }
-  }, [error]);
-
-  const parseM3U = (content: string): { title: string; url: string }[] => {
-    const lines = content.split("\n");
-    const parsedItems: { title: string; url: string }[] = [];
-    let currentTitle = "";
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-
-      if (line.startsWith("#EXTINF")) {
-        const titleMatch = line.match(/,(.+)/);
-        currentTitle = titleMatch ? titleMatch[1] : "Unknown Title";
-      } else if (line.startsWith("http") || line.startsWith("https")) {
-        parsedItems.push({ title: currentTitle, url: line });
-      }
-    }
-
-    return parsedItems;
-  };
-
-  const handleRemove = async (itemTitle: string, url: string) => {
+  const handleRemove = async (itemTitle: string, hash: string) => {
     const confirmation = await confirmAlert({
       title: "Confirm Removal",
       message: `Are you sure you want to remove the torrent "${itemTitle}"?`,
@@ -83,9 +57,6 @@ export default function Command() {
 
     if (confirmation) {
       try {
-        const urlObj = new URL(url);
-        const hash = urlObj.searchParams.get("link");
-
         const response = await fetch(`${torrserverUrl}/torrents`, {
           method: "POST",
           headers: {
@@ -101,8 +72,8 @@ export default function Command() {
           throw new Error("Failed to remove the torrent");
         }
 
-        if (favorites.includes(url)) {
-          await removeFromFavorites(favorites, url, false);
+        if (favorites.includes(hash)) {
+          await removeFromFavorites(favorites, hash, false);
         }
 
         await getList();
@@ -132,7 +103,7 @@ export default function Command() {
   };
 
   const toggleFavorite = async (url: string) => {
-    const cleanedFavorites = favorites.filter((fav) => items.some((item) => item.url === fav));
+    const cleanedFavorites = favorites.filter((fav) => items.some((item) => item.hash === fav));
 
     if (favorites.includes(url)) {
       await removeFromFavorites(cleanedFavorites, url, true);
@@ -141,34 +112,40 @@ export default function Command() {
     }
   };
 
+  const getStreamLink = (item: TorrentItem) => {
+    const encodedTitle = encodeURIComponent(item.title);
+    const hash = item.hash;
+
+    return `${mediaPlayerApp}://weblink?url=${encodeURIComponent(
+      `${torrserverUrl}/stream/[${encodedTitle}] ${encodedTitle}.m3u?link=${hash}&m3u&fn=file.m3u`,
+    )}`;
+  };
+
   const sortedItems = [
-    ...items.filter((item) => favorites.includes(item.url)),
-    ...items.filter((item) => !favorites.includes(item.url)),
+    ...items.filter((item) => favorites.includes(item.hash)),
+    ...items.filter((item) => !favorites.includes(item.hash)),
   ];
 
   return (
-    <List isLoading={isLoading || isRefreshing || isLoadingFavorites}>
-      {sortedItems.length === 0 && !isLoading ? (
+    <List isLoading={isRefreshing || isLoadingFavorites}>
+      {sortedItems.length === 0 ? (
         <List.EmptyView title="No torrents found" />
       ) : (
         sortedItems.map((item, index) => (
           <List.Item
             key={index}
             icon={Icon.Video}
-            accessories={favorites.includes(item.url) ? [{ icon: Icon.Star }] : []}
+            accessories={favorites.includes(item.hash) ? [{ icon: Icon.Star }] : []}
             title={item.title}
             actions={
               <ActionPanel>
-                <Action.Open
-                  title={`Open in ${mediaPlayerApp}`}
-                  target={`${mediaPlayerApp}://weblink?url=${encodeURIComponent(item.url)}`}
-                />
+                <Action.Open title={`Open in ${mediaPlayerApp}`} target={getStreamLink(item)} />
                 <Action
-                  title={favorites.includes(item.url) ? "Remove from Favorites" : "Add to Favorites"}
-                  icon={favorites.includes(item.url) ? Icon.Trash : Icon.Star}
-                  onAction={() => toggleFavorite(item.url)}
+                  title={favorites.includes(item.hash) ? "Remove from Favorites" : "Add to Favorites"}
+                  icon={favorites.includes(item.hash) ? Icon.Trash : Icon.Star}
+                  onAction={() => toggleFavorite(item.hash)}
                 />
-                <Action title="Remove Torrent" icon={Icon.Trash} onAction={() => handleRemove(item.title, item.url)} />
+                <Action title="Remove Torrent" icon={Icon.Trash} onAction={() => handleRemove(item.title, item.hash)} />
               </ActionPanel>
             }
           />
