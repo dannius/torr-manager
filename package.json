@@ -55,7 +55,7 @@
   "commands": [
     {
       "name": "list",
-      "title": "Show added torrents",
+      "title": "Show torrents",
       "description": "Show list of available torrents on your server",
       "mode": "view"
     },
