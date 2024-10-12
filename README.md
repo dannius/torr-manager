@@ -8,12 +8,12 @@ The **torr-manager** extension allows users to connect to their TorrServer, brow
 
 ## Features
 
-- **Connect to TorrServer**: Easily configure and manage your connection settings to TorrServer.
-- **Browse Torrents**: View a list of torrents hosted on your torrent server.
-- **Select Movies**: Choose and play movies directly from the list with just one click, seamlessly opening them in your preferred media player.
-- **Add Torrents**: Upload new torrent files directly from Raycast for quick addition to your library.
-- **Remove Torrents**: Effortlessly delete unwanted torrents with a simple action.
-- **Favorites**: Mark your favorite torrents for quick access, ensuring you never lose track of the movies you love.
+- **Connect to TorrServer**: Configure and manage your connection settings.
+- **Browse Torrents**: View the list of torrents on your server.
+- **Select Movies**: Play movies directly from the list with one click.
+- **Add Torrents**: Upload new torrents from Raycast.
+- **Remove Torrents**: Delete unwanted torrents easily.
+- **Favorites**: Mark and access favorite torrents quickly.
 
 ## Requirements
 
