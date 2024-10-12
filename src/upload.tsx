@@ -80,7 +80,7 @@ export default function Command() {
         </ActionPanel>
       }
     >
-      <Form.Description text="Add a new torrent to TorrServer." />
+      <Form.Description text="Upload new torrent to TorrServer." />
       <Form.FilePicker
         id="torrentFile"
         title="Torrent File"

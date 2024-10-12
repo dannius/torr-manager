@@ -14,6 +14,7 @@ The **torr-manager** extension allows users to connect to their TorrServer, brow
 - **Add Torrents**: Upload new torrents from Raycast.
 - **Remove Torrents**: Delete unwanted torrents easily.
 - **Favorites**: Mark and access favorite torrents quickly.
+- **Search Torrents Across Trackers**: Utilize the built-in [jacred-fdb](https://github.com/immisterio/jacred-fdb) parser to search for torrents across various trackers and add them directly to your TorrServer from Raycast.
 
 ## Requirements
 

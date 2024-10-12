@@ -137,7 +137,7 @@ export default function Command() {
             actions={
               <ActionPanel>
                 <Action.Open
-                  title={`Open in ${mediaPlayerApp}`}
+                  title={`Open in ${mediaPlayerApp.name}`}
                   target={getStreamLink(item)}
                   application={mediaPlayerApp.path}
                 />
