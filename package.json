@@ -1,8 +1,8 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "torr-manager",
-  "title": "torr-manager",
-  "description": "Allows users to connect to their TorrServer, browse available torrents, select and watch movies directly from Raycast.",
+  "title": "Torr Manager",
+  "description": "Allows connect to selfhosted TorrServer, browse available torrents, select and watch movies directly from Raycast.",
   "icon": "extension_icon.png",
   "author": "dannius",
   "categories": [
@@ -16,8 +16,8 @@
       "type": "textfield",
       "title": "Torrserver URL",
       "description": "Enter the URL/IP to your server",
-      "defaultValue": "http://",
-      "placeholder": "http://",
+      "defaultValue": "",
+      "placeholder": "http://ip:port",
       "required": true
     },
     {
