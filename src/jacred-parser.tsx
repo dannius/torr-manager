@@ -1,4 +1,4 @@
-import { ActionPanel, Action, Icon, List, showToast, Toast, getPreferenceValues } from "@raycast/api";
+import { ActionPanel, Action, List, showToast, Toast, getPreferenceValues, Color } from "@raycast/api";
 import { useEffect, useState } from "react";
 import fetch from "node-fetch";
 import { getAuthHeaders } from "./utils";
@@ -35,7 +35,6 @@ export default function Command() {
 
       const data = await response.json();
       if (Array.isArray(data)) {
-        // Сортируем список по количеству сидов (sid) в порядке убывания
         const sortedItems = data.sort((a: JacredParsedTorrent, b: JacredParsedTorrent) => b.sid - a.sid);
         setItems(sortedItems);
       } else {
@@ -77,8 +76,26 @@ export default function Command() {
     }
   };
 
+  const formatTitle = (title: string, lineLength: number = 12): string[] => {
+    const words = title.split(" ");
+    const formattedTitle: string[] = [];
+    let currentLine = "";
+
+    words.forEach((word, index) => {
+      currentLine += word + " ";
+
+      if ((index + 1) % lineLength === 0 || index === words.length - 1) {
+        formattedTitle.push(currentLine.trim());
+        currentLine = "";
+      }
+    });
+
+    return formattedTitle;
+  };
+
   return (
     <List
+      isShowingDetail
       searchBarPlaceholder="Search torrents (min 3 characters)"
       onSearchTextChange={setQuery}
       isLoading={isRefreshing}
@@ -88,18 +105,38 @@ export default function Command() {
       ) : (
         items.map((item, index) => (
           <List.Item
+            title={item.title} // Keeps the original title for the List view
             key={index}
-            icon={Icon.Download}
-            title={item.title}
-            subtitle={`Size: ${item.sizeName} | Seeds: ${item.sid} | Peers: ${item.pir}`}
+            detail={
+              <List.Item.Detail
+                metadata={
+                  <List.Item.Detail.Metadata>
+                    <List.Item.Detail.Metadata.Label title="Title" />
+                    {formatTitle(item.title).map((titleRow, index) => (
+                      <List.Item.Detail.Metadata.Label key={index} title="" text={titleRow} />
+                    ))}
+
+                    <List.Item.Detail.Metadata.Separator />
+
+                    <List.Item.Detail.Metadata.TagList title="Stats">
+                      <List.Item.Detail.Metadata.TagList.Item text={`Seeds: ${item.sid}`} color={Color.Green} />
+                      <List.Item.Detail.Metadata.TagList.Item text={`Peers: ${item.pir}`} color={Color.Red} />
+                    </List.Item.Detail.Metadata.TagList>
+
+                    <List.Item.Detail.Metadata.Separator />
+
+                    <List.Item.Detail.Metadata.Label title="Size" text={item.sizeName} />
+                    <List.Item.Detail.Metadata.Separator />
+
+                    <List.Item.Detail.Metadata.Label title="Magnet Link" text={item.magnet} />
+                  </List.Item.Detail.Metadata>
+                }
+              />
+            }
             actions={
               <ActionPanel>
                 <Action.CopyToClipboard title="Copy Magnet Link" content={item.magnet} />
-                <Action
-                  title="Add Torrent to Server"
-                  onAction={() => addTorrentToServer(item.title, item.magnet)}
-                  icon={Icon.Plus}
-                />
+                <Action title="Add Torrent to Server" onAction={() => addTorrentToServer(item.title, item.magnet)} />
               </ActionPanel>
             }
           />
