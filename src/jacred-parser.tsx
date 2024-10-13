@@ -1,4 +1,4 @@
-import { ActionPanel, Action, List, showToast, Toast, getPreferenceValues, Color } from "@raycast/api";
+import { ActionPanel, Action, List, showToast, Toast, getPreferenceValues, Color, open } from "@raycast/api";
 import { useEffect, useState } from "react";
 import fetch from "node-fetch";
 import { getAuthHeaders } from "./utils";
@@ -8,7 +8,7 @@ export default function Command() {
   const [query, setQuery] = useState<string>("");
   const [items, setItems] = useState<JacredParsedTorrent[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { torrserverUrl } = getPreferenceValues<Preferences>();
+  const { torrserverUrl, mediaPlayerApp } = getPreferenceValues<Preferences>();
 
   useEffect(() => {
     if (query.length >= 3) {
@@ -47,7 +47,7 @@ export default function Command() {
     }
   };
 
-  const addTorrentToServer = async (title: string, link: string) => {
+  const addTorrentToServer = async (title: string, link: string, saveToDb = true, openInMediaPlayer = false) => {
     try {
       const response = await fetch(`${torrserverUrl}/torrents`, {
         method: "POST",
@@ -60,7 +60,7 @@ export default function Command() {
           category: "",
           link,
           poster: "",
-          save_to_db: true,
+          save_to_db: saveToDb,
           title,
         }),
       });
@@ -68,6 +68,12 @@ export default function Command() {
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Failed to add torrent: ${errorText}`);
+      }
+
+      if (openInMediaPlayer) {
+        const data = await response.json();
+        const link = getStreamLink(data);
+        open(link, mediaPlayerApp?.path);
       }
 
       showToast(Toast.Style.Success, "Torrent added to server");
@@ -93,6 +99,12 @@ export default function Command() {
     return formattedTitle;
   };
 
+  const getStreamLink = (item: TorrentItem) => {
+    const encodedTitle = encodeURIComponent(item.title);
+
+    return `${torrserverUrl}/stream/[${encodedTitle}] ${encodedTitle}.m3u?link=${item.hash}&m3u&fn=file.m3u`;
+  };
+
   return (
     <List
       isShowingDetail
@@ -105,7 +117,7 @@ export default function Command() {
       ) : (
         items.map((item, index) => (
           <List.Item
-            title={item.title} // Keeps the original title for the List view
+            title={item.title}
             key={index}
             detail={
               <List.Item.Detail
@@ -137,6 +149,10 @@ export default function Command() {
               <ActionPanel>
                 <Action.CopyToClipboard title="Copy Magnet Link" content={item.magnet} />
                 <Action title="Add Torrent to Server" onAction={() => addTorrentToServer(item.title, item.magnet)} />
+                <Action
+                  title={`Open in ${mediaPlayerApp!.name}`}
+                  onAction={() => addTorrentToServer(item.title, item.magnet, false, true)}
+                />
               </ActionPanel>
             }
           />
