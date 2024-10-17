@@ -2,12 +2,12 @@ import { ActionPanel, Action, List, showToast, Toast, getPreferenceValues, Color
 import { useEffect, useState } from "react";
 import fetch from "node-fetch";
 import { getAuthHeaders, handleDomain } from "./utils";
-import { JacredParsedTorrent, TorrentItem } from "./models";
+import { JackettParsedTorrent, TorrentItem } from "./models";
 
 export default function Command() {
   const [query, setQuery] = useState<string>("");
-  const [items, setItems] = useState<JacredParsedTorrent[]>([]);
-  const { torrserverUrl, mediaPlayerApp, jacredParserUrl } = getPreferenceValues<Preferences>();
+  const [items, setItems] = useState<JackettParsedTorrent[]>([]);
+  const { torrserverUrl, mediaPlayerApp, jackettParserUrl } = getPreferenceValues<Preferences>();
 
   useEffect(() => {
     if (query.length >= 3) {
@@ -21,15 +21,15 @@ export default function Command() {
   const getList = async (query: string) => {
     showToast(Toast.Style.Animated, "Processing...");
 
-    if (!jacredParserUrl) {
-      showToast(Toast.Style.Failure, "Error", "Jacred parser url not found");
+    if (!jackettParserUrl) {
+      showToast(Toast.Style.Failure, "Error", "Jackett parser url not found");
 
       return;
     }
 
     try {
       const response = await fetch(
-        `${handleDomain(jacredParserUrl)}/api/v1.0/torrents?search=${encodeURIComponent(query)}&apikey=null`,
+        `${handleDomain(jackettParserUrl)}/api/v1.0/torrents?search=${encodeURIComponent(query)}&apikey=null`,
         {
           method: "GET",
         },
@@ -42,7 +42,7 @@ export default function Command() {
       const data = await response.json();
 
       if (Array.isArray(data)) {
-        const sortedItems = data.sort((a: JacredParsedTorrent, b: JacredParsedTorrent) => b.sid - a.sid);
+        const sortedItems = data.sort((a: JackettParsedTorrent, b: JackettParsedTorrent) => b.sid - a.sid);
         setItems(sortedItems);
         showToast(Toast.Style.Success, "Success", `${sortedItems.length} results`);
       } else {

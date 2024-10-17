@@ -1,4 +1,4 @@
-export interface JacredParsedTorrent {
+export interface JackettParsedTorrent {
   tracker: string;
   url: string;
   createTime: string;
