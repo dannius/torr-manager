@@ -67,6 +67,12 @@
       "title": "Search Torrents",
       "description": "Search torrents",
       "mode": "view"
+    },
+    {
+      "name": "test-connection",
+      "title": "Test Connection",
+      "description": "Test connection to your server",
+      "mode": "view"
     }
   ],
   "dependencies": {
