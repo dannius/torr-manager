@@ -1,13 +1,14 @@
 import { ActionPanel, Action, List, showToast, Toast, getPreferenceValues, Color, open, Icon } from "@raycast/api";
 import { useEffect, useState } from "react";
 import fetch from "node-fetch";
-import { getAuthHeaders, handleDomain } from "./utils";
-import { JackettParsedTorrent, TorrentItem } from "./models";
+import { FormData } from "formdata-node";
+import { getAuthHeaders, handleDomain, timeoutFetch } from "./utils";
+import { JackettParsedTorrent, MOVIE_CATEGORIES, TorrentItem } from "./models";
 
 export default function Command() {
   const [query, setQuery] = useState<string>("");
   const [items, setItems] = useState<JackettParsedTorrent[]>([]);
-  const { torrserverUrl, mediaPlayerApp, jackettParserUrl } = getPreferenceValues<Preferences>();
+  const { torrserverUrl, mediaPlayerApp, jackettParserUrl, jackettApiKey } = getPreferenceValues<Preferences>();
 
   useEffect(() => {
     if (query.length >= 3) {
@@ -28,23 +29,36 @@ export default function Command() {
     }
 
     try {
-      const response = await fetch(
-        `${handleDomain(jackettParserUrl)}/api/v1.0/torrents?search=${encodeURIComponent(query)}&apikey=null`,
-        {
-          method: "GET",
+      const params = new URLSearchParams({
+        Query: query,
+      });
+
+      if (jackettApiKey) {
+        params.append("apikey", jackettApiKey);
+      }
+
+      MOVIE_CATEGORIES.forEach((category) => {
+        params.append("Category", `${category}`);
+      });
+
+      const response = await fetch(`${jackettParserUrl}/api/v2.0/indexers/all/results?${params.toString()}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch torrents");
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as { Results: JackettParsedTorrent[] };
+      const torrents = data.Results;
 
-      if (Array.isArray(data)) {
-        const sortedItems = data.sort((a: JackettParsedTorrent, b: JackettParsedTorrent) => b.sid - a.sid);
+      if (Array.isArray(torrents)) {
+        const sortedItems = torrents.sort((a: JackettParsedTorrent, b: JackettParsedTorrent) => b.Seeders - a.Seeders);
         setItems(sortedItems);
-        showToast(Toast.Style.Success, "Success", `${sortedItems.length} results`);
+        showToast(Toast.Style.Success, "", `${sortedItems.length} results`);
       } else {
         showToast(Toast.Style.Failure, "Error", "Invalid response");
         return;
@@ -59,37 +73,47 @@ export default function Command() {
     showToast(Toast.Style.Animated, "Processing...");
 
     try {
-      const response = await fetch(`${handleDomain(torrserverUrl)}/torrents`, {
+      const fileResponse = await fetch(link);
+
+      if (!fileResponse.ok) {
+        throw new Error(`Failed to fetch the torrent file: ${fileResponse.statusText}`);
+      }
+
+      const fileBlob = await fileResponse.blob();
+
+      const formData = new FormData();
+      formData.append("save", "true");
+      formData.append("file", fileBlob, title);
+      formData.append("title", title);
+      formData.append("save_to_db", saveToDb);
+
+      const serverUrl = `${torrserverUrl}/torrent/upload`;
+      const uploadResponse = await timeoutFetch(handleDomain(serverUrl), {
         method: "POST",
+        body: formData,
         headers: {
           ...getAuthHeaders(),
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          action: "add",
-          category: "",
-          link,
-          poster: "",
-          save_to_db: saveToDb,
-          title,
-        }),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to add torrent: ${errorText}`);
+      if (!uploadResponse.ok) {
+        showToast(
+          Toast.Style.Failure,
+          `Failed to upload torrent: ${uploadResponse.status} ${uploadResponse.statusText}`,
+        );
+        return;
       }
+
+      showToast(Toast.Style.Success, "Torrent added successfully");
 
       if (openInMediaPlayer) {
-        const data = (await response.json()) as TorrentItem;
-        const link = getStreamLink(data);
-        open(link, mediaPlayerApp?.path);
+        const data = (await uploadResponse.json()) as TorrentItem;
+        const streamLink = getStreamLink(data);
+        open(streamLink, mediaPlayerApp?.path);
       }
-
-      showToast(Toast.Style.Success, "Torrent added to server");
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
-      showToast(Toast.Style.Failure, "Error", "Failed to add torrent");
+      showToast(Toast.Style.Failure, "Error", `Failed to add torrent`);
     }
   };
 
@@ -116,6 +140,10 @@ export default function Command() {
     return `${torrserverUrl}/stream/[${encodedTitle}] ${encodedTitle}.m3u?link=${item.hash}&m3u&fn=file.m3u`;
   };
 
+  const bytesToGbText = (bytes: number): string => {
+    return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  };
+
   return (
     <List isShowingDetail searchBarPlaceholder="Search torrents (min 3 characters)" onSearchTextChange={setQuery}>
       {items.length === 0 ? (
@@ -123,30 +151,36 @@ export default function Command() {
       ) : (
         items.map((item, index) => (
           <List.Item
-            title={item.title}
+            title={item.Title}
             key={index}
             detail={
               <List.Item.Detail
                 metadata={
                   <List.Item.Detail.Metadata>
                     <List.Item.Detail.Metadata.Label title="Title" />
-                    {formatTitle(item.title).map((titleRow, index) => (
+                    {formatTitle(item.Title).map((titleRow, index) => (
+                      <List.Item.Detail.Metadata.Label key={index} title="" text={titleRow} />
+                    ))}
+
+                    <List.Item.Detail.Metadata.Label title="Description" />
+                    {formatTitle(item.Description).map((titleRow, index) => (
                       <List.Item.Detail.Metadata.Label key={index} title="" text={titleRow} />
                     ))}
 
                     <List.Item.Detail.Metadata.Separator />
 
                     <List.Item.Detail.Metadata.TagList title="Stats">
-                      <List.Item.Detail.Metadata.TagList.Item text={`Seeds: ${item.sid}`} color={Color.Green} />
-                      <List.Item.Detail.Metadata.TagList.Item text={`Peers: ${item.pir}`} color={Color.Red} />
+                      <List.Item.Detail.Metadata.TagList.Item text={`Seeds: ${item.Seeders}`} color={Color.Green} />
+                      <List.Item.Detail.Metadata.TagList.Item text={`Peers: ${item.Peers}`} color={Color.Red} />
+                      <List.Item.Detail.Metadata.TagList.Item text={`Tracker: ${item.Tracker}`} color={Color.Blue} />
                     </List.Item.Detail.Metadata.TagList>
 
                     <List.Item.Detail.Metadata.Separator />
 
-                    <List.Item.Detail.Metadata.Label title="Size" text={item.sizeName} />
+                    <List.Item.Detail.Metadata.Label title="Size" text={bytesToGbText(item.Size)} />
                     <List.Item.Detail.Metadata.Separator />
 
-                    <List.Item.Detail.Metadata.Label title="Magnet Link" text={item.magnet} />
+                    <List.Item.Detail.Metadata.Label title="Link" text={item.Link} />
                   </List.Item.Detail.Metadata>
                 }
               />
@@ -156,14 +190,15 @@ export default function Command() {
                 <Action
                   title={`Open in ${mediaPlayerApp!.name}`}
                   icon={{ source: Icon.Video }}
-                  onAction={() => addTorrentToServer(item.title, item.magnet, false, true)}
+                  onAction={() => addTorrentToServer(item.Title, item.Link, false, true)}
                 />
                 <Action
                   icon={{ source: Icon.SaveDocument }}
                   title="Add Torrent to Server"
-                  onAction={() => addTorrentToServer(item.title, item.magnet)}
+                  onAction={() => addTorrentToServer(item.Title, item.Link)}
                 />
-                <Action.CopyToClipboard title="Copy Magnet Link" content={item.magnet} />
+                <Action.OpenInBrowser title="Download Torrent File" url={item.Link} />
+                <Action.CopyToClipboard title="Copy Link to Torrent" content={item.Link} />
               </ActionPanel>
             }
           />

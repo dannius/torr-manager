@@ -47,6 +47,13 @@
       "type": "textfield",
       "description": "URL endpoint required for enabling search",
       "required": false
+    },
+    {
+      "name": "jackettApiKey",
+      "title": "Jackett api key",
+      "type": "textfield",
+      "description": "Api key required for enabling search",
+      "required": false
     }
   ],
   "commands": [
