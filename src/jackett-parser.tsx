@@ -2,7 +2,7 @@ import { ActionPanel, Action, List, showToast, Toast, getPreferenceValues, Color
 import { useEffect, useState } from "react";
 import fetch from "node-fetch";
 import { FormData } from "formdata-node";
-import { getAuthHeaders, handleDomain, timeoutFetch } from "./utils";
+import { getAuthHeaders, getFormattedDate, handleDomain, timeoutFetch } from "./utils";
 import { JackettParsedTorrent, MOVIE_CATEGORIES, TorrentItem } from "./models";
 
 export default function Command() {
@@ -188,7 +188,7 @@ export default function Command() {
                     <List.Item.Detail.Metadata.Label title="Size" text={bytesToGbText(item.Size)} />
                     <List.Item.Detail.Metadata.Separator />
 
-                    <List.Item.Detail.Metadata.Label title="Link" text={item.Link} />
+                    <List.Item.Detail.Metadata.Label title="Publish Date" text={getFormattedDate(item.PublishDate)} />
                   </List.Item.Detail.Metadata>
                 }
               />
