@@ -65,6 +65,7 @@ export default function Command() {
 
       if (Array.isArray(torrents)) {
         const sortedItems = torrents.sort((a: JackettParsedTorrent, b: JackettParsedTorrent) => b.Seeders - a.Seeders);
+
         setItems(sortedItems);
         showToast(Toast.Style.Success, "", `${sortedItems.length} results`);
       } else {
@@ -218,8 +219,9 @@ export default function Command() {
                     onAction={() => addTorrentToServer(item.Title, item.Link)}
                   />
                 )}
-                <Action.OpenInBrowser title="Download Torrent File" url={item.Link} />
-                <Action.CopyToClipboard title="Copy Link to Torrent" content={item.Link} />
+                {item.Link && <Action.OpenInBrowser title="Download Torrent File" url={item.Link} />}
+                {item.Details && <Action.OpenInBrowser title="Open in Browser" url={item.Details} />}
+                {item.Link && <Action.CopyToClipboard title="Copy Link to Torrent" content={item.Link} />}
               </ActionPanel>
             }
           />
