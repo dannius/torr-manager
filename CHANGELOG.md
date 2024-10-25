@@ -5,7 +5,7 @@
 - Expanded search functionality to support both magnet links and direct links.
 - Marked jackettApiKey as optional, as not all servers require an API key.
 
-## [Initial Version] - {PR_MERGE_DATE}
+## [Initial Version] - 2024-10-25
 
 - Connection management for TorrServer.
 - Browsing capability for viewing torrents on the server.
